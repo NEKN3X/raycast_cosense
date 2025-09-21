@@ -55,7 +55,7 @@ export default function Command() {
               icon={page.image}
               subtitle={page.lines[0]}
               actions={
-                <ActionPanel title="#1 in raycast/extensions">
+                <ActionPanel>
                   <Action.OpenInBrowser url={`https://scrapbox.io/${searchResult.projectName}/${page.title}`} />
                 </ActionPanel>
               }
