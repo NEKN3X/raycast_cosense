@@ -29,28 +29,34 @@ export default function Command() {
             onSearchTextChange={setSearchText}
             isLoading={isLoadingGyazoSearch || isLoadingpagesSearch}
         >
-            {pagesSearchResult?.map((item) => (
-                <Grid.Section key={item.projectName} title={item.projectName}>
-                    {item.pages.map((page) => (
-                        <Grid.Item
-                            key={page.id}
-                            content={page.image}
-                            title={page.title}
-                            subtitle={page.lines[0]}
-                            actions={
-                                <ActionPanel>
-                                    <Action.OpenInBrowser
-                                        url={`https://scrapbox.io/${item.projectName}/${page.title}`}
-                                    />
-                                </ActionPanel>
-                            }
-                        />
-                    ))}
-                </Grid.Section>
-            ))}
-            {gyazoSearchResult?.length ? (
+            {isLoadingpagesSearch
+                ? null
+                : pagesSearchResult?.map((item) => (
+                      <Grid.Section key={item.projectName} title={item.projectName}>
+                          {item.pages.map((page) => (
+                              <Grid.Item
+                                  key={page.id}
+                                  content={page.image}
+                                  title={page.title}
+                                  subtitle={page.lines[0]}
+                                  actions={
+                                      <ActionPanel>
+                                          <Action.OpenInBrowser
+                                              url={`https://scrapbox.io/${item.projectName}/${page.title}`}
+                                          />
+                                          <Action.CopyToClipboard
+                                              title="Copy Page URL"
+                                              content={`https://scrapbox.io/${item.projectName}/${page.title}`}
+                                          />
+                                      </ActionPanel>
+                                  }
+                              />
+                          ))}
+                      </Grid.Section>
+                  ))}
+            {isLoadingpagesSearch || isLoadingGyazoSearch ? null : (
                 <Grid.Section key="gyazo_images" title="Gyazo">
-                    {gyazoSearchResult.map((item) => (
+                    {gyazoSearchResult?.map((item) => (
                         <Grid.Item
                             key={item.image_id}
                             content={item.url}
@@ -58,12 +64,13 @@ export default function Command() {
                             actions={
                                 <ActionPanel>
                                     <Action.OpenInBrowser url={item.permalink_url} />
+                                    <Action.CopyToClipboard title="Copy Image URL" content={item.url} />
                                 </ActionPanel>
                             }
                         />
                     ))}
                 </Grid.Section>
-            ) : null}
+            )}
         </Grid>
     );
 }
