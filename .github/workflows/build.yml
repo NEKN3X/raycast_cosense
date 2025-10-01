@@ -1,4 +1,4 @@
-wname: Build and Upload Artifacts
+name:  Build and Upload Artifacts
 
 on:
   push:
