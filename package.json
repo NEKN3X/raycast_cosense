@@ -7,9 +7,9 @@
     "license": "MIT",
     "commands": [
         {
-            "name": "search-pages",
-            "title": "Search Cosense Pages",
-            "description": "Search Cosense pages and open",
+            "name": "result",
+            "title": "Search Cosense Pages and Gyazo Images",
+            "description": "Search Cosense pages and Gyazo images",
             "mode": "view"
         }
     ],
@@ -56,6 +56,13 @@
             "title": "Projects",
             "description": "Your Cosense projects. Separate multiple projects with commas.",
             "required": true
+        },
+        {
+            "name": "gyazoAccessToken",
+            "type": "password",
+            "title": "Gyazo Access Token",
+            "description": "Your Gyazo Access Token",
+            "required": false
         }
     ]
 }
