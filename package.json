@@ -11,6 +11,12 @@
             "title": "Search Cosense Pages and Gyazo Images",
             "description": "Search Cosense pages and Gyazo images",
             "mode": "view"
+        },
+        {
+            "name": "test",
+            "title": "Test",
+            "description": "Test command",
+            "mode": "view"
         }
     ],
     "tools": [],
