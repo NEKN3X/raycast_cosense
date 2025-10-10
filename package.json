@@ -8,8 +8,8 @@
     "commands": [
         {
             "name": "result",
-            "title": "Search Cosense Pages and Gyazo Images",
-            "description": "Search Cosense pages and Gyazo images",
+            "title": "Result",
+            "description": "Search in one place",
             "mode": "view"
         }
     ],
@@ -55,6 +55,7 @@
             "type": "textfield",
             "title": "Projects",
             "description": "Your Cosense projects. Separate multiple projects with commas.",
+            "default": "help-jp",
             "required": true
         },
         {
@@ -63,6 +64,14 @@
             "title": "Gyazo Access Token",
             "description": "Your Gyazo Access Token",
             "required": false
+        },
+        {
+            "name": "searchEngine",
+            "type": "textfield",
+            "title": "Search Engine",
+            "description": "Your preferred search engine.",
+            "default": "https://duckduckgo.com/?q={query}",
+            "required": true
         }
     ]
 }
