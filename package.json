@@ -61,6 +61,7 @@
             "type": "textfield",
             "title": "Projects",
             "description": "Your Cosense projects. Separate multiple projects with commas.",
+            "default": "help-jp",
             "required": true
         },
         {
@@ -69,6 +70,14 @@
             "title": "Gyazo Access Token",
             "description": "Your Gyazo Access Token",
             "required": false
+        },
+        {
+            "name": "searchEngine",
+            "type": "textfield",
+            "title": "Search Engine",
+            "description": "Your preferred search engine.",
+            "default": "https://duckduckgo.com/?q={query}",
+            "required": true
         }
     ]
 }
