@@ -8,14 +8,8 @@
     "commands": [
         {
             "name": "result",
-            "title": "Search Cosense Pages and Gyazo Images",
-            "description": "Search Cosense pages and Gyazo images",
-            "mode": "view"
-        },
-        {
-            "name": "test",
-            "title": "Test",
-            "description": "Test command",
+            "title": "Result",
+            "description": "Search in one place",
             "mode": "view"
         }
     ],

@@ -24,3 +24,14 @@ export interface GyazoSearchResponse {
     };
     alt_text: string;
 }
+
+export interface ScrapboxSearchResponse {
+    projectName: string;
+    searchQuery: string;
+    pages: Array<{
+        id: string;
+        title: string;
+        image: string;
+        lines: string[];
+    }>;
+}

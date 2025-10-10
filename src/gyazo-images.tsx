@@ -1,15 +1,31 @@
-import { Action, ActionPanel, Grid, useNavigation } from "@raycast/api";
+import { Action, ActionPanel, Grid, openExtensionPreferences, useNavigation } from "@raycast/api";
 import { useFetch } from "@raycast/utils";
 import { GyazoSearchResponse } from "./types";
 
 export type Props = {
-    searchText: string;
     token: string;
 };
 
-export default function Gyazo({ searchText, token }: Props) {
+export function PushGyazoImagesAction({ token }: { token?: string }) {
+    const { push } = useNavigation();
+    return (
+        <Action
+            title="Gyazo Images"
+            shortcut={{
+                windows: { modifiers: ["ctrl"], key: "j" },
+                macOS: { modifiers: ["cmd"], key: "j" },
+            }}
+            onAction={() => {
+                if (!token) openExtensionPreferences();
+                else push(<GyazoImages token={token} />);
+            }}
+        />
+    );
+}
+
+export default function GyazoImages({ token }: Props) {
     const { pop } = useNavigation();
-    const { isLoading, data } = useFetch(`https://api.gyazo.com/api/search?query=${encodeURIComponent(searchText)}`, {
+    const { isLoading, data } = useFetch("https://api.gyazo.com/api/images", {
         headers: {
             Authorization: `Bearer ${token}`,
         },
@@ -23,8 +39,8 @@ export default function Gyazo({ searchText, token }: Props) {
             actions={
                 <ActionPanel>
                     <Action
+                        title="Back"
                         onAction={pop}
-                        title={"Back"}
                         shortcut={{
                             windows: { modifiers: ["ctrl"], key: "j" },
                             macOS: { modifiers: ["cmd"], key: "j" },
@@ -43,8 +59,8 @@ export default function Gyazo({ searchText, token }: Props) {
                             <Action.OpenInBrowser url={item.permalink_url} />
                             <Action.CopyToClipboard title="Copy Image URL" content={item.url} />
                             <Action
+                                title="Back"
                                 onAction={pop}
-                                title={"Back"}
                                 shortcut={{
                                     windows: { modifiers: ["ctrl"], key: "j" },
                                     macOS: { modifiers: ["cmd"], key: "j" },

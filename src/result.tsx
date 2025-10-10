@@ -1,76 +1,38 @@
-import { Action, ActionPanel, getPreferenceValues, Grid } from "@raycast/api";
-import { useState, useRef } from "react";
-import { usePromise } from "@raycast/utils";
-import { searchGyazo } from "./search-gyazo";
-import { searchPages } from "./search-pages";
+import { Action, ActionPanel, getPreferenceValues, List } from "@raycast/api";
+import { useState } from "react";
+import ScrapboxSearch from "./scrapbox-search";
+import { PushGyazoSearchAction } from "./gyazo-search";
+import { PushGyazoImagesAction } from "./gyazo-images";
 
 export default function Command() {
     const [searchText, setSearchText] = useState("");
     const preferences = getPreferenceValues<Preferences>();
-    const projects = preferences.projects.split(",").map((p) => p.trim());
-
-    const abortable = useRef<AbortController>(undefined);
-    const { isLoading: isLoadingGyazoSearch, data: gyazoSearchResult } = usePromise(
-        async (searchText: string) => searchGyazo(searchText, preferences.gyazoAccessToken, abortable.current?.signal),
-        [searchText.trim()],
-        { abortable },
-    );
-    const abortable2 = useRef<AbortController>(undefined);
-    const { isLoading: isLoadingpagesSearch, data: pagesSearchResult } = usePromise(
-        async (searchText: string) => searchPages(searchText, projects, preferences.sid, abortable2.current?.signal),
-        [searchText.trim()],
-        { abortable: abortable2 },
-    );
 
     return (
-        <Grid
-            columns={4}
-            inset={Grid.Inset.Large}
+        <List
             onSearchTextChange={setSearchText}
-            isLoading={isLoadingGyazoSearch || isLoadingpagesSearch}
+            actions={
+                <ActionPanel>
+                    {searchText.length > 0 && (
+                        <>
+                            <Action.OpenInBrowser
+                                title="Web Search"
+                                shortcut={{ modifiers: ["shift"], key: "enter" }}
+                                url={preferences.searchEngine.replaceAll("{query}", searchText)}
+                            />
+                            <PushGyazoSearchAction searchText={searchText} token={preferences.gyazoAccessToken} />
+                        </>
+                    )}
+                    {searchText.length === 0 && <PushGyazoImagesAction token={preferences.gyazoAccessToken} />}
+                </ActionPanel>
+            }
         >
-            {isLoadingpagesSearch
-                ? null
-                : pagesSearchResult?.map((item) => (
-                      <Grid.Section key={item.projectName} title={item.projectName}>
-                          {item.pages.map((page) => (
-                              <Grid.Item
-                                  key={page.id}
-                                  content={page.image}
-                                  title={page.title}
-                                  subtitle={page.lines[0]}
-                                  actions={
-                                      <ActionPanel>
-                                          <Action.OpenInBrowser
-                                              url={`https://scrapbox.io/${item.projectName}/${page.title}`}
-                                          />
-                                          <Action.CopyToClipboard
-                                              title="Copy Page URL"
-                                              content={`https://scrapbox.io/${item.projectName}/${page.title}`}
-                                          />
-                                      </ActionPanel>
-                                  }
-                              />
-                          ))}
-                      </Grid.Section>
-                  ))}
-            {isLoadingpagesSearch || isLoadingGyazoSearch ? null : (
-                <Grid.Section key="gyazo_images" title="Gyazo">
-                    {gyazoSearchResult?.map((item) => (
-                        <Grid.Item
-                            key={item.image_id}
-                            content={item.url}
-                            subtitle={item.ocr?.description || item.metadata?.title}
-                            actions={
-                                <ActionPanel>
-                                    <Action.OpenInBrowser url={item.permalink_url} />
-                                    <Action.CopyToClipboard title="Copy Image URL" content={item.url} />
-                                </ActionPanel>
-                            }
-                        />
+            {searchText &&
+                preferences.projects
+                    .split(",")
+                    .map((project) => (
+                        <ScrapboxSearch key={project} project={project} searchText={searchText} sid={preferences.sid} />
                     ))}
-                </Grid.Section>
-            )}
-        </Grid>
+        </List>
     );
 }
