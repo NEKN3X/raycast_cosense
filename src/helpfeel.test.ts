@@ -1,73 +1,83 @@
+import { parseGlossary, expandWithGlossary, expandHelpfeel, resolveQueryGlossary, buildFinalUrl } from "./helpfeel";
+import { HelpfeelEntry, GlossaryMap } from "./types";
 import { describe, it, expect } from "vitest";
-import { expandHelpfeel } from "./helpfeel";
 
-describe("expandHelpfeel", () => {
-  const glossary = {
-    pc: "(パソコン|PC)",
-    action: "(捨てたい|:破棄したい)",
-    trash: "{pc}の(捨て方|処分方法)",
-  };
-
-  it("基本的な展開ができること", () => {
-    const input = "? (犬|猫)が好き";
-    const result = expandHelpfeel(input);
-
-    expect(result).toContain("犬が好き");
-    expect(result).toContain("猫が好き");
-    expect(result).toHaveLength(2);
+describe("helpfeel.ts", () => {
+  describe("parseGlossary", () => {
+    it("Glossary記法を正しくパースできること", () => {
+      const lines = [
+        { text: "target:`([Mac]|Windows|:Linux)`" },
+        { text: "browser:`(Chrome|Firefox)`" },
+        { text: "無関係な行" },
+      ];
+      const expected: GlossaryMap = {
+        target: ["Mac", "Windows", "Linux"],
+        browser: ["Chrome", "Firefox"],
+      };
+      expect(parseGlossary(lines)).toEqual(expected);
+    });
   });
 
-  it("用語集が正しく展開されること", () => {
-    const input = "? {pc}を買う";
-    const result = expandHelpfeel(input, glossary);
+  describe("expandWithGlossary", () => {
+    it("Glossary変数を用いて文字列を展開できること", () => {
+      const glossary: GlossaryMap = {
+        os: ["Mac", "Win"],
+      };
+      const text = "? {os}の設定方法";
+      const result = expandWithGlossary(text, glossary);
+      expect(result).toEqual(["? Macの設定方法", "? Winの設定方法"]);
+    });
 
-    expect(result).toEqual(expect.arrayContaining(["パソコンを買う", "PCを買う"]));
-    expect(result).toHaveLength(2);
+    it("変数が含まれない場合はそのまま返すこと", () => {
+      const result = expandWithGlossary("? テスト", { os: ["Mac"] });
+      expect(result).toEqual(["? テスト"]);
+    });
   });
 
-  it('劣後記号 ":" が無視（削除）されて展開されること', () => {
-    const input = "? {action}";
-    const result = expandHelpfeel(input, glossary);
-
-    expect(result).toContain("捨てたい");
-    expect(result).toContain("破棄したい"); // ":" が消えていること
-    expect(result).toHaveLength(2);
+  describe("expandHelpfeel", () => {
+    it("Helpfeel標準の括弧記法を展開できること", () => {
+      const text = "? (A|B)の(中|小)項目";
+      const result = expandHelpfeel(text);
+      expect(result).toEqual(["? Aの中項目", "? Aの小項目", "? Bの中項目", "? Bの小項目"]);
+    });
   });
 
-  it("用語集の中に用語集がある（再帰的な定義）を解決できること", () => {
-    const input = "? {trash}";
-    const result = expandHelpfeel(input, glossary);
+  describe("resolveQueryGlossary", () => {
+    it("クエリから変数とクリーンなテキストを分離できること", () => {
+      const input = "てすと入力 q=キーワード pc=(ノート パソコン)";
+      const { cleanSearchText, variables } = resolveQueryGlossary(input);
 
-    // {pc} が展開され、さらに (捨て方|処分方法) が展開される
-    expect(result).toContain("パソコンの捨て方");
-    expect(result).toContain("パソコンの処分方法");
-    expect(result).toContain("PCの捨て方");
-    expect(result).toContain("PCの処分方法");
-    expect(result).toHaveLength(4);
+      expect(cleanSearchText).toBe("てすと入力");
+      expect(variables).toEqual({
+        q: "キーワード",
+        pc: "ノート パソコン",
+      });
+    });
+
+    it("変数がない場合は空のオブジェクトを返すこと", () => {
+      const { cleanSearchText, variables } = resolveQueryGlossary("単なる検索");
+      expect(cleanSearchText).toBe("単なる検索");
+      expect(variables).toEqual({});
+    });
   });
 
-  it("複数の括弧が組み合わさったデカルト積が正しく生成されること", () => {
-    const input = "? (A|B)は(1|2)";
-    const result = expandHelpfeel(input);
+  describe("buildFinalUrl", () => {
+    const entry: HelpfeelEntry = {
+      text: "テスト",
+      pageTitle: "TestPage",
+      openUrl: "https://example.com/search?q={query}&v={v}",
+    };
 
-    expect(result).toEqual(["Aは1", "Aは2", "Bは1", "Bは2"]);
-  });
+    it("テンプレート変数を正しく置換したURLを生成すること", () => {
+      const queryVars = { v: "123" };
+      const url = buildFinalUrl(entry, "検索語", queryVars, "my-project");
+      expect(url).toBe("https://example.com/search?q=%E6%A4%9C%E7%B4%A2%E8%AA%9E&v=123");
+    });
 
-  it("角括弧 [] が除去されること（読み替え機能は未実装のため）", () => {
-    const input = "? [質問]の仕方";
-    const result = expandHelpfeel(input);
-
-    expect(result).toEqual(["質問の仕方"]);
-  });
-
-  it('行頭の "? " がなくても動作すること', () => {
-    const input = "括弧がない文章";
-    const result = expandHelpfeel(input);
-
-    expect(result).toEqual(["括弧がない文章"]);
-  });
-
-  it("空文字や異常な入力に対して空の配列を返さないこと", () => {
-    expect(expandHelpfeel("")).toEqual([""]);
+    it("openUrlがない場合はScrapboxのURLを返すこと", () => {
+      const scrapboxEntry: HelpfeelEntry = { text: "テスト", pageTitle: "TestPage" };
+      const url = buildFinalUrl(scrapboxEntry, "hoge", {}, "my-project");
+      expect(url).toBe("https://scrapbox.io/my-project/TestPage");
+    });
   });
 });
