@@ -43,6 +43,7 @@ export interface HelpfeelEntry {
   pageTitle: string;
   /** % open 行で指定された外部URLテンプレート（任意） */
   openUrl?: string;
+  copyText?: string;
 }
 
 /**

@@ -4,7 +4,7 @@ import Fuse from "fuse.js";
 import { useScrapboxProject } from "./use-scrapbox";
 import { PushGyazoSearchAction } from "./gyazo-search";
 import { PushGyazoImagesAction } from "./gyazo-images";
-import { buildFinalUrl, extractDynamicQuery, resolveQueryGlossary } from "./helpfeel";
+import { buildCopyText, buildFinalUrl, extractDynamicQuery, resolveQueryGlossary } from "./helpfeel";
 
 export default function Command() {
   const [searchText, setSearchText] = useState("");
@@ -70,7 +70,9 @@ function ProjectSearchSection({ project, searchText, sid }: { project: string; s
         <List.Section title={`Helpfeel: ${project}`}>
           {filteredHelpfeels.slice(0, 10).map((hf, i) => {
             // 2. buildFinalUrl に抽出した dynamicQuery を渡す
-            const finalUrl = buildFinalUrl(hf, dynamicQuery, variables, project);
+            const { dynamicQuery } = extractDynamicQuery(searchText);
+            const targetCopyText = buildCopyText(hf, dynamicQuery, variables);
+            const targetUrl = buildFinalUrl(hf, dynamicQuery, variables, project);
 
             return (
               <List.Item
@@ -80,17 +82,23 @@ function ProjectSearchSection({ project, searchText, sid }: { project: string; s
                 accessories={[{ text: hf.pageTitle, icon: Icon.Link }]}
                 actions={
                   <ActionPanel>
+                    {/* copyText があればコピーを最優先にする */}
+                    {targetCopyText && <Action.CopyToClipboard title="Copy to Clipboard" content={targetCopyText} />}
+
+                    {/* openUrl があればブラウザで開く */}
                     {hf.openUrl && (
                       <>
-                        <Action.OpenInBrowser title="Open URL" url={finalUrl} />
+                        <Action.OpenInBrowser url={targetUrl} />
                         <Action.CopyToClipboard title="Copy URL" content={hf.openUrl} />
                       </>
                     )}
+
                     <Action.OpenInBrowser
                       shortcut={{ modifiers: ["shift"], key: "enter" }}
-                      title="Open Scrapbox Page"
                       url={`https://scrapbox.io/${project}/${encodeURIComponent(hf.pageTitle)}`}
+                      title="Open Scrapbox Page"
                     />
+
                     <Action.CopyToClipboard
                       shortcut={{ modifiers: ["shift", "ctrl"], key: "enter" }}
                       title="Copy Scrapbox URL"
@@ -114,7 +122,10 @@ function ProjectSearchSection({ project, searchText, sid }: { project: string; s
               icon={Icon.Document}
               actions={
                 <ActionPanel>
-                  <Action.OpenInBrowser url={`https://scrapbox.io/${project}/${encodeURIComponent(title)}`} />
+                  <Action.OpenInBrowser
+                    title="Open Scrapbox Page"
+                    url={`https://scrapbox.io/${project}/${encodeURIComponent(title)}`}
+                  />
                   <Action.CopyToClipboard
                     title="Copy URL"
                     content={`https://scrapbox.io/${project}/${encodeURIComponent(title)}`}

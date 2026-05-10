@@ -160,3 +160,27 @@ export const extractDynamicQuery = (inputText: string): { dynamicQuery: string; 
     fixedPart,
   };
 };
+
+/**
+ * コピー用のテキストを組み立てる
+ */
+export const buildCopyText = (
+  entry: HelpfeelEntry,
+  dynamicQuery: string,
+  queryVariables: Record<string, string>,
+): string | undefined => {
+  if (!entry.copyText) return undefined;
+
+  let text = entry.copyText;
+
+  // {query} の置換
+  text = text.replace(/{query}/g, dynamicQuery);
+
+  // 変数置換
+  Object.entries(queryVariables).forEach(([key, value]) => {
+    const placeholder = new RegExp(`{${key}}`, "g");
+    text = text.replace(placeholder, value);
+  });
+
+  return text;
+};

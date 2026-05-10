@@ -71,24 +71,25 @@ export async function syncProject(project: string, sid?: string): Promise<Projec
       for (let i = 0; i < lines.length; i++) {
         const lineText = lines[i].text.trim();
 
+        // syncProject 内の詳細取得ループにて
         if (lineText.startsWith("? ")) {
-          // 次の行に % open があるか確認
           let openUrl: string | undefined;
+          let copyText: string | undefined; // 追加
+
+          // 次の行のメタデータをチェック
           if (i + 1 < lines.length) {
             const nextLine = lines[i + 1].text.trim();
             if (nextLine.startsWith("% open ")) {
               openUrl = nextLine.replace("% open ", "").trim();
+            } else if (nextLine.startsWith("% copy ")) {
+              copyText = nextLine.replace("% copy ", "").trim();
             }
           }
 
-          // 1. Glossary による変数展開 ({target} 等)
-          const glossaryExpanded = expandWithGlossary(lineText, currentGlossary || {});
-
-          // 2. Helpfeel 標準の括弧展開 ((A|B) 等)
+          const glossaryExpanded = expandWithGlossary(lineText, currentGlossary);
           glossaryExpanded.forEach((ge) => {
-            const finalExpanded = expandHelpfeel(ge);
-            finalExpanded.forEach((text) => {
-              entries.push({ text, pageTitle: p.title, openUrl });
+            expandHelpfeel(ge).forEach((text) => {
+              entries.push({ text, pageTitle: p.title, openUrl, copyText }); // copyTextを渡す
             });
           });
         }
