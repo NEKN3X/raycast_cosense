@@ -63,6 +63,7 @@ describe("helpfeel.ts", () => {
 
   describe("buildFinalUrl", () => {
     const entry: HelpfeelEntry = {
+      id: "TestPage-0",
       text: "テスト",
       pageTitle: "TestPage",
       openUrl: "https://example.com/search?q={query}&v={v}",
@@ -75,7 +76,7 @@ describe("helpfeel.ts", () => {
     });
 
     it("openUrlがない場合はScrapboxのURLを返すこと", () => {
-      const scrapboxEntry: HelpfeelEntry = { text: "テスト", pageTitle: "TestPage" };
+      const scrapboxEntry: HelpfeelEntry = { id: "TestPage-0", text: "テスト", pageTitle: "TestPage" };
       const url = buildFinalUrl(scrapboxEntry, "hoge", {}, "my-project");
       expect(url).toBe("https://scrapbox.io/my-project/TestPage");
     });

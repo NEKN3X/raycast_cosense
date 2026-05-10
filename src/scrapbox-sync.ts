@@ -89,7 +89,7 @@ export async function syncProject(project: string, sid?: string): Promise<Projec
           const glossaryExpanded = expandWithGlossary(lineText, currentGlossary);
           glossaryExpanded.forEach((ge) => {
             expandHelpfeel(ge).forEach((text) => {
-              entries.push({ text, pageTitle: p.title, openUrl, copyText }); // copyTextを渡す
+              entries.push({ id: `${p.title}-${i}`, text, pageTitle: p.title, openUrl, copyText }); // copyTextを渡す
             });
           });
         }

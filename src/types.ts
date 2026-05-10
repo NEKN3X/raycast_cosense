@@ -37,12 +37,15 @@ export interface ScrapboxSearchResponse {
 }
 
 export interface HelpfeelEntry {
-  /** 展開後のHelpfeel質問文 */
+  /** ページタイトル + 行番号に基づくID */
+  id: string;
+  /** 展開後のテキスト */
   text: string;
-  /** 元のScrapboxページタイトル */
+  /** ページタイトル */
   pageTitle: string;
-  /** % open 行で指定された外部URLテンプレート（任意） */
+  /** % open URL */
   openUrl?: string;
+  /** % copy テキスト */
   copyText?: string;
 }
 

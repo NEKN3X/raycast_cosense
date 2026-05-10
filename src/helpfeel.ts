@@ -1,4 +1,3 @@
-import Fuse from "fuse.js";
 import { HelpfeelEntry, GlossaryMap } from "./types";
 
 /**
@@ -103,35 +102,6 @@ export const buildFinalUrl = (
   });
 
   return url;
-};
-
-/**
- * 検索実行時のロジック (UIコンポーネント側で利用)
- */
-export const processSearch = (fullInput: string, entries: HelpfeelEntry[]) => {
-  // 1. まず q=xxx などの明示的な変数を抽出
-  const { cleanSearchText, variables } = resolveQueryGlossary(fullInput);
-
-  // 2. Fuse.js で Helpfeel を検索
-  // (ここでは cleanSearchText を使ってマッチさせる)
-  const fuse = new Fuse(entries, { keys: ["text"], threshold: 0.4 });
-  const results = fuse.search(cleanSearchText);
-
-  return results.map((result) => {
-    const entry = result.item;
-
-    // 3. マッチしたHelpfeel文言自体を cleanSearchText から除外した残りを
-    // 自動的に {query} とみなす計算
-    // 例: cleanSearchText が "help テスト" で、マッチしたのが "help" なら "テスト" が query
-    const matchedText = entry.text; // 例: "help"
-    const dynamicQuery = cleanSearchText.replace(matchedText, "").trim() || cleanSearchText; // マッチ部分が消せなければ全体を入れる
-
-    return {
-      ...entry,
-      dynamicQuery,
-      variables,
-    };
-  });
 };
 
 /**

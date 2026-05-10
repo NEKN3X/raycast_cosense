@@ -1,10 +1,11 @@
 import { Action, ActionPanel, List, getPreferenceValues, Icon } from "@raycast/api";
 import { useState, useMemo } from "react";
-import Fuse from "fuse.js";
+import { Fzf } from "fzf";
 import { useScrapboxProject } from "./use-scrapbox";
 import { PushGyazoSearchAction } from "./gyazo-search";
 import { PushGyazoImagesAction } from "./gyazo-images";
 import { buildCopyText, buildFinalUrl, extractDynamicQuery, resolveQueryGlossary } from "./helpfeel";
+import { HelpfeelEntry } from "./types";
 
 export default function Command() {
   const [searchText, setSearchText] = useState("");
@@ -47,18 +48,50 @@ function ProjectSearchSection({ project, searchText, sid }: { project: string; s
 
   // 1. 固定部分 (fixedPart) を使ってHelpfeelを検索
   const filteredHelpfeels = useMemo(() => {
+    const { fixedPart } = extractDynamicQuery(searchText);
     if (!fixedPart) return [];
-    const fuse = new Fuse(data.helpfeels, { keys: ["text"], threshold: 0.5 });
-    return fuse.search(fixedPart).map((r) => r.item);
-  }, [fixedPart, data.helpfeels]);
+
+    // 1. Fzf インスタンスの作成
+    const fzf = new Fzf(data.helpfeels, {
+      // 検索対象のキーを指定
+      selector: (item) => `${item.text}`,
+      // 先頭一致を優先するなどの調整が可能
+      tiebreakers: [(a, b) => b.score - a.score],
+    });
+
+    // 2. 検索実行
+    const results = fzf.find(fixedPart);
+
+    // 3. IDでユニーク化（最もスコアが高いもの1つだけを抽出）
+    const uniqueMap = new Map<string, (typeof results)[0]>();
+
+    for (const res of results) {
+      const id = res.item.id;
+      // fzf はスコアが高いほど一致度が高い
+      if (!uniqueMap.has(id) || res.score > (uniqueMap.get(id)?.score ?? -Infinity)) {
+        console.log(res);
+        uniqueMap.set(id, res);
+      }
+    }
+
+    return Array.from(uniqueMap.values()).map((r) => r.item);
+  }, [searchText, data.helpfeels]);
 
   // タイトル検索のフィルタリング
-  const filteredTitles = useMemo(() => {
+  const filteredPages = useMemo(() => {
     if (!searchText) return [];
-    const fuse = new Fuse(data.titles, {
-      threshold: 0.4,
+
+    // 1. Fzf インスタンスの作成 (ページ検索用)
+    const fzf = new Fzf(data.titles, {
+      tiebreakers: [(a, b) => b.score - a.score],
     });
-    return fuse.search(searchText).map((r) => r.item);
+
+    // 2. 検索実行
+    // ページ検索の場合は extractDynamicQuery を通さず、searchText 全体を使う
+    const results = fzf.find(searchText);
+
+    // 3. 上位の結果を返す (重複排除は通常不要だが、件数制限をかけると見やすい)
+    return results.slice(0, 20).map((r) => r.item);
   }, [searchText, data.titles]);
 
   const { cleanSearchText, variables } = resolveQueryGlossary(searchText);
@@ -113,9 +146,9 @@ function ProjectSearchSection({ project, searchText, sid }: { project: string; s
       )}
 
       {/* ページタイトル セクション */}
-      {filteredTitles.length > 0 && (
+      {filteredPages.length > 0 && (
         <List.Section title={`Pages: ${project}`} subtitle={isLoading ? "Syncing..." : ""}>
-          {filteredTitles.slice(0, 20).map((title) => (
+          {filteredPages.slice(0, 20).map((title) => (
             <List.Item
               key={`title-${project}-${title}`}
               title={title}
