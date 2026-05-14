@@ -5,7 +5,6 @@ import { useScrapboxProject } from "./use-scrapbox";
 import { PushGyazoSearchAction } from "./gyazo-search";
 import { PushGyazoImagesAction } from "./gyazo-images";
 import { buildCopyText, buildFinalUrl, extractDynamicQuery, resolveQueryGlossary } from "./helpfeel";
-import { HelpfeelEntry } from "./types";
 
 export default function Command() {
   const [searchText, setSearchText] = useState("");
@@ -44,7 +43,6 @@ export default function Command() {
  */
 function ProjectSearchSection({ project, searchText, sid }: { project: string; searchText: string; sid?: string }) {
   const { data, isLoading } = useScrapboxProject(project, sid);
-  const { dynamicQuery, fixedPart } = useMemo(() => extractDynamicQuery(searchText), [searchText]);
 
   // 1. 固定部分 (fixedPart) を使ってHelpfeelを検索
   const filteredHelpfeels = useMemo(() => {
@@ -94,7 +92,7 @@ function ProjectSearchSection({ project, searchText, sid }: { project: string; s
     return results.slice(0, 20).map((r) => r.item);
   }, [searchText, data.titles]);
 
-  const { cleanSearchText, variables } = resolveQueryGlossary(searchText);
+  const { variables } = resolveQueryGlossary(searchText);
 
   return (
     <>

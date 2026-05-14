@@ -81,8 +81,8 @@ export async function syncProject(project: string, sid?: string): Promise<Projec
             const nextLine = lines[i + 1].text.trim();
             if (nextLine.startsWith("% open ")) {
               openUrl = nextLine.replace("% open ", "").trim();
-            } else if (nextLine.startsWith("% copy ")) {
-              copyText = nextLine.replace("% copy ", "").trim();
+            } else if (nextLine.startsWith("% ")) {
+              copyText = nextLine.replace("% ", "").trim();
             }
           }
 
