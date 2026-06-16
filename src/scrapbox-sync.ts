@@ -1,6 +1,6 @@
 import { Cache } from "@raycast/api";
 import { ProjectCache, SearchTitlesResponse, PageResponse, HelpfeelEntry } from "./types";
-import { parseGlossary, expandWithGlossary, expandHelpfeel } from "./helpfeel";
+import { parseGlossary } from "./helpfeel";
 
 const cache = new Cache();
 
@@ -10,12 +10,10 @@ export async function syncProject(project: string, sid?: string): Promise<Projec
 
   // 1. キャッシュの読み込み
   const rawCache = cache.get(cacheKey);
-  // syncProject 内のキャッシュ読み込み部分
   const prevCache: ProjectCache = rawCache
     ? JSON.parse(rawCache)
     : { project, lastSyncTime: 0, pageUpdatedMap: {}, helpfeels: [], titles: [], glossary: {} };
 
-  // 以前のバージョンのキャッシュに glossary がない場合の補完
   if (!prevCache.glossary) {
     prevCache.glossary = {};
   }
@@ -27,6 +25,7 @@ export async function syncProject(project: string, sid?: string): Promise<Projec
 
   // 3. Glossary ページの更新確認と取得
   let currentGlossary = prevCache.glossary;
+  let isGlossaryUpdated = false; // Glossaryが更新されたかどうかのフラグ
   const glossaryPage = latestPages.find((p) => p.title === "Glossary");
 
   if (glossaryPage) {
@@ -36,22 +35,26 @@ export async function syncProject(project: string, sid?: string): Promise<Projec
       if (gRes.ok) {
         const gData = (await gRes.json()) as PageResponse;
         currentGlossary = parseGlossary(gData.lines);
+        isGlossaryUpdated = true; // 更新があったことをマーク
       }
     }
   }
 
   // 4. 更新が必要なページ（dirty）を特定
   const dirtyPages = latestPages.filter((p) => {
-    // Glossary 自体は Helpfeel 展開用なので dirtyPages からは除外（または含めても良いが二重処理回避）
     if (p.title === "Glossary") return false;
+    // 【重要】Glossaryが更新された場合は、全ページを「dirty（要再計算）」として扱う
+    if (isGlossaryUpdated) return true;
+
     const cachedUpdated = prevCache.pageUpdatedMap[p.title];
     return !cachedUpdated || p.updated > cachedUpdated;
   });
 
-  // 5. キャッシュの整理（削除されたページの除去と、更新対象の古いデータの除去）
+  // 5. キャッシュの整理
   const latestTitlesSet = new Set(latestPages.map((p) => p.title));
   const dirtyTitlesSet = new Set(dirtyPages.map((p) => p.title));
 
+  // 既存のキャッシュから「削除されておらず、かつ今回更新（再計算）対象になっていない」クリーンなデータを残す
   const cleanHelpfeels = prevCache.helpfeels.filter(
     (h) => latestTitlesSet.has(h.pageTitle) && !dirtyTitlesSet.has(h.pageTitle),
   );
@@ -71,10 +74,9 @@ export async function syncProject(project: string, sid?: string): Promise<Projec
       for (let i = 0; i < lines.length; i++) {
         const lineText = lines[i].text.trim();
 
-        // syncProject 内の詳細取得ループにて
         if (lineText.startsWith("? ")) {
           let openUrl: string | undefined;
-          let copyText: string | undefined; // 追加
+          let copyText: string | undefined;
 
           // 次の行のメタデータをチェック
           if (i + 1 < lines.length) {
@@ -86,11 +88,17 @@ export async function syncProject(project: string, sid?: string): Promise<Projec
             }
           }
 
-          const glossaryExpanded = expandWithGlossary(lineText, currentGlossary);
-          glossaryExpanded.forEach((ge) => {
-            expandHelpfeel(ge).forEach((text) => {
-              entries.push({ id: `${p.title}-${i}`, text, pageTitle: p.title, openUrl, copyText }); // copyTextを渡す
-            });
+          // --- 変更: キャッシュには展開済みテキストを保存せず、元のテンプレート行を保存する ---
+          // ここでは Glossary や {query}、および括弧を展開せずに原文をそのまま保存します。
+          // 実際の展開（Glossary と query を先に展開してから括弧を展開する）は検索時に行います。
+
+          entries.push({
+            id: `${p.title}-${i}`,
+            text: lineText,
+            originalText: lineText,
+            pageTitle: p.title,
+            openUrl,
+            copyText,
           });
         }
       }

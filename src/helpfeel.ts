@@ -1,5 +1,26 @@
 import { HelpfeelEntry, GlossaryMap } from "./types";
 
+export const parseLineGlossary = (lines: { text: string }[]): GlossaryMap => {
+  const glossary: GlossaryMap = {};
+
+  lines.forEach((line) => {
+    const text = line.text.trim();
+
+    // "キー:`(値|値)`" の構造から、キーとカッコの中身を丸ごと抽出
+    const match = text.match(/^([a-zA-Z0-9_-]+)\s*:\s*`?\.?(\(.+\))`?$/);
+
+    if (match) {
+      const key = match[1];
+      const pattern = match[2];
+      const inner = pattern.replace(/^\(|\)$/g, "");
+      const options = inner.split("|").map((v) => v.replace(/[[\]:]/g, "").trim());
+      glossary[key] = options;
+    }
+  });
+
+  return glossary;
+};
+
 /**
  * Glossary ページの本文から変数を抽出する
  * 形式: word:`([言葉A]|言葉B|:言葉C)`
@@ -20,22 +41,51 @@ export const parseGlossary = (lines: { text: string }[]): GlossaryMap => {
 };
 
 /**
- * 文字列内の {key} を Glossary に基づいて全展開する
+ * Helpfeel記法内のプレースホルダーを、Glossaryの正規表現パターンに置換する
+ * 入力: "? {doc}を開く"
+ * 出力: "? (doc|ドキュメント)を開く"
  */
 export const expandWithGlossary = (text: string, glossary: GlossaryMap = {}): string[] => {
-  // glossary が null や undefined の場合の安全策
-  const safeGlossary = glossary ?? {};
-  let patterns = [text];
+  const trimmed = text.trim();
 
-  Object.entries(safeGlossary).forEach(([key, values]) => {
-    const placeholder = `{${key}}`;
-    // values が配列であることを確認
-    if (!Array.isArray(values)) return;
+  // Collect placeholders present in the text in order of appearance
+  const placeholderRegex = /\{(\w+)\}/g;
+  const keys: string[] = [];
+  let m;
+  while ((m = placeholderRegex.exec(trimmed)) !== null) {
+    const key = m[1];
+    if (key === "query") continue; // skip {query}
+    if (!keys.includes(key)) keys.push(key);
+  }
 
-    patterns = patterns.flatMap((p) => (p.includes(placeholder) ? values.map((v) => p.replace(placeholder, v)) : [p]));
+  if (keys.length === 0) return [trimmed];
+
+  // For each key, get its options from glossary (fallback to the key itself)
+  const optionsList: string[][] = keys.map((k) => glossary[k] ?? [k]);
+
+  // Cartesian product to generate all combinations
+  const combos: string[] = optionsList.reduce<string[]>((acc, opts) => {
+    if (acc.length === 0) return opts.slice();
+    const res: string[] = [];
+    for (const a of acc) {
+      for (const o of opts) {
+        res.push(`${a}|${o}`);
+      }
+    }
+    return res;
+  }, [] as string[]);
+
+  // combos currently like ['A|X','A|Y','B|X',...], we need to map each combo to a replaced string
+  return combos.map((combo) => {
+    const parts = combo.split("|");
+    let out = trimmed;
+    keys.forEach((k, idx) => {
+      const placeholder = `{${k}}`;
+      // replace all occurrences
+      out = out.split(placeholder).join(parts[idx]);
+    });
+    return out;
   });
-
-  return patterns;
 };
 
 /**

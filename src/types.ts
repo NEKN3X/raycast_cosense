@@ -39,8 +39,10 @@ export interface ScrapboxSearchResponse {
 export interface HelpfeelEntry {
   /** ページタイトル + 行番号に基づくID */
   id: string;
-  /** 展開後のテキスト */
+  /** 元の行テキスト（テンプレート）: Glossary や {query}、および括弧 ( ) を含む場合がある */
   text: string;
+  /** 元の行テキスト（同義）：検索時に Glossary とクエリ展開を行うために保持 */
+  originalText?: string;
   /** ページタイトル */
   pageTitle: string;
   /** % open URL */
@@ -49,11 +51,8 @@ export interface HelpfeelEntry {
   copyText?: string;
 }
 
-/**
- * Glossaryページから抽出された静的変数マップ
- * 例: { "os": ["Mac", "Windows", "Linux"] }
- */
 export type GlossaryMap = Record<string, string[]>;
+// 例: { doc: ["doc","ドキュメント"], os: ["Mac","Windows"] }
 
 export interface ProjectCache {
   /** Scrapboxプロジェクト名 */
