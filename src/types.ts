@@ -1,10 +1,3 @@
-export interface Preferences {
-  sid?: string;
-  projects: string;
-  gyazoAccessToken?: string;
-  searchEngine: string;
-}
-
 export interface GyazoSearchResponse {
   image_id: string;
   permalink_url: string;
